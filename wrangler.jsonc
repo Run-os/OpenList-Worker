@@ -30,6 +30,15 @@
   "workers_dev": false,
   "preview_urls": false,
 
+  // ===========================================================================
+  // ⚠️ 顶层键（只能放在这里，不能放进 env 里）
+  // 作用：wrangler deploy 时【保留】云控制台里配置的纯文本变量（vars）。
+  // 不加这行：面板里设的变量每次 wrangler 部署都会被本文件下方的 "vars"
+  //          覆盖回默认值（secrets 不受影响，永远不删）。
+  // 官方文档：Workers → Wrangler → Configuration → Source of truth
+  // ===========================================================================
+  "keep_vars": true,
+
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
@@ -120,14 +129,19 @@
   // 存储绑定
   // ===========================================================================
   //
-  // ▶ 方案 A：KV（默认启用，免费额度大、最通用）
+  // ▶ 方案 A：KV（当前启用）
   //   ⚠️ 必须【完全省略 id 字段】，不能写成 "id": ""：
   //      wrangler 配置校验会拒绝空字符串 id（"should have a string id field"）。
   //   省略 id 后：首次部署由 wrangler 自动创建 openlist-tsworkers-kv 并绑定；
   //   二次部署通过 inherit 复用已有绑定，不会重复创建。
-  //   若想改用账户里已有的 KV，把该命名空间的 id 填进来即可。
+  //   若想改用账户里已有的 KV，把该命名空间的 id 填进来即可（见下方注释行）。
   //
-  //  "kv_namespaces": [{ "binding": "KV" }],
+  // 2026-09-16 取消注释：安装向导报 "No storage backend available."，
+  // 根因是 Worker 上没有任何 KV 绑定（DB_DRIVER=kv 时驱动探测失败）。
+  "kv_namespaces": [{ "binding": "KV" }],
+  // 复用账户里已有的空命名空间（title=openlist）时改用下面这行；
+  // 好处：不依赖 wrangler 的自动预配版本，且不会多建一个命名空间。
+  // "kv_namespaces": [{ "binding": "KV", "id": "069f4b1acd8c4a3faf966d1e7f0c7e14" }],
   //
   // ▶ 方案 B：D1（关系型，可与 Go 后端共享库；DB_FORMAT 建议改为 "sql"）
   //   控制台：Workers & Pages → D1 → 创建数据库 → 绑定到 Worker，变量名填 DB
