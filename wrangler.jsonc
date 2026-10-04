@@ -30,6 +30,10 @@
   "workers_dev": false,
   "preview_urls": false,
 
+  // 保留在 Cloudflare 控制台手动添加的普通变量（仓库 vars 里已定义的键仍以本文件为准）。
+  // 注意：该项【只作用于普通变量】，对 KV/D1 等绑定无效 —— 绑定必须写在下面的存储绑定段。
+  "keep_vars": true,
+
   // ⚠️ run_worker_first 只放行 HTML 入口，不能改成 true（全量放行）：
   //   默认「资源优先」时 / 与 /index.html 由静态层直接返回，Worker 根本不会执行，
   //   ASSET_URLS 的 CDN 注入（fetch CDN index.html → 注入 window.OPENLIST_CONFIG.cdn）
@@ -64,7 +68,8 @@
     //   do         - Cloudflare Durable Objects（需下方 durable_objects）
     //   mysql      - 外部 MySQL（需 MYSQL_URLS 或 MYSQL_HOST 等，仅 Node 运行时）
     // 说明：mysql 仅在配置了连接信息时才参与 auto 探测，避免无谓的 TCP 建连。
-    "DB_DRIVER": "auto",
+    // ↓ 本 fork 改为固定 kv：绑定了 KV 就不要留 auto，避免绑定异常时静默退化到别的驱动。
+    "DB_DRIVER": "kv",
 
     // 敏感字段落盘算法（默认 none：不加密；与 DB_DRIVER/DB_FORMAT 正交）：
     //   none（默认）              - 不加密，敏感字段明文落盘
@@ -155,7 +160,11 @@
   //   二次部署通过 inherit 复用已有绑定，不会重复创建。
   //   若想改用账户里已有的 KV，把该命名空间的 id 填进来即可。
   //
-  //  "kv_namespaces": [{ "binding": "KV" }],
+  //   ↓ 本 fork 改为【显式绑定已有命名空间】（填 id，不省略）：
+  //     一是避免 wrangler 自动预配另建 openlist-tsworkers-kv、让原本的数据"看起来丢了"；
+  //     二是让每一次重新构建都稳定绑回同一个 KV，配置不再被重置。
+  //     要换命名空间，改下面的 id 即可。
+  "kv_namespaces": [{ "binding": "KV", "id": "069f4b1acd8c4a3faf966d1e7f0c7e14" }],
   //
   // ▶ 方案 B：D1（关系型，可与 Go 后端共享库；DB_FORMAT 建议改为 "sql"）
   //   控制台：Workers & Pages → D1 → 创建数据库 → 绑定到 Worker，变量名填 DB
